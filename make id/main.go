@@ -73,7 +73,7 @@ func main() {
 	result := "export const AppIds = {\n"
 	for i := 0; i < len(filePaths); i++ {
 		key := <-mainC
-		key = nonAlphanumericRegex.ReplaceAllString(key, "")
+		key = standardizeName(key)
 		val := strings.Title(key) + "Ids"
 		result += fmt.Sprintf("  %s: %s,\n", key, val)
 	}
@@ -93,10 +93,9 @@ func process(childAddress string, key string, pathGroup []string) {
 	for _, file := range pathGroup {
 		go processFile(file, &c)
 	}
-	result := "export const " + strings.Title(nonAlphanumericRegex.ReplaceAllString(key, "")) + "Ids = {\n"
+	result := "export const " + strings.Title(standardizeName(key)) + "Ids = {\n"
 	for i := 0; i < len(pathGroup); i++ {
 		component := <-c
-		component = nonAlphanumericRegex.ReplaceAllString(component, "")
 		if component != "" {
 			result += fmt.Sprintf("  %s: '%s',\n", component, component)
 		}
@@ -113,13 +112,14 @@ func process(childAddress string, key string, pathGroup []string) {
 func processFile(path string, c *chan string) {
 	fmt.Printf("Processing %s...\n", path)
 	data := ReadFileAsString(path)
-	var hold string
+	var hold, result string
 	componentFound := false
 	classFound := false
 	for _, char := range data {
 		if unicode.IsSpace(char) {
 			if hold != "" {
 				if classFound {
+					result = hold
 					break
 				} else if componentFound {
 					if hold == "class" {
@@ -134,5 +134,23 @@ func processFile(path string, c *chan string) {
 			hold += string(char)
 		}
 	}
-	*c <- hold
+	*c <- result
+}
+
+func standardizeName(name string) string {
+	var result string
+	down := true
+	for _, char := range name {
+		if unicode.IsLetter(char) || unicode.IsDigit(char) {
+			if down {
+				result += string(char)
+			} else {
+				result += string(unicode.ToUpper(char))
+				down = true
+			}
+		} else {
+			down = false
+		}
+	}
+	return result
 }

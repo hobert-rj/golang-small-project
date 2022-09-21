@@ -20,7 +20,8 @@ func ReadFolder(inp string) map[string][]string {
 	files := make(map[string][]string)
 	fs, err := os.ReadDir(inp)
 	if err != nil {
-		fmt.Println("Error reading directory: ", err)
+		fmt.Println("Error reading directory: ", inp)
+		panic(err)
 	} else {
 		for _, dir := range fs {
 			if dir.IsDir() {
